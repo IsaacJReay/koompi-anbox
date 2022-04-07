@@ -1,0 +1,26 @@
+post_install() {
+    modprobe binder_linux devices=binder,hwbinder,vndbinder,anbox-binder,anbox-hwbinder,anbox-vndbinder
+    modprobe ashmem_linux
+    nmcli con add type bridge ifname anbox0 -- connection.id anbox-net ipv4.method shared ipv4.addresses 192.168.250.1/24
+    systemctl enable --now anbox-container-manager.service
+    cat <<- 'EOF'
+
+        [Info] You may need to mount binder
+        sudo mount -t binder binder /dev/binderfs
+
+        [Info] After finished, You must first run Anbox app before any other apps, or this will fail
+
+	EOF
+}
+
+pre_remove() {
+    sudo umount /dev/binderfs
+    systemctl disable anbox-container-manager.service
+    systemctl stop anbox-container-manager.service
+}
+
+post_remove() {
+    rmmod binder_linux devices=binder,hwbinder,vndbinder,anbox-binder,anbox-hwbinder,anbox-vndbinder
+    rmmod ashmem_linux
+    nmcli connection delete anbox-net 
+}
